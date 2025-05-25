@@ -146,9 +146,8 @@ box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 <p class="font-['Dancing_Script'] text-5xl" id="final-attempts">0</p>
 </div>
 </div>
-<div class="flex justify-between gap-4">
-<button id="play-again-button" class="game-btn text-white py-3 px-4 rounded-button text-sm flex-1 cursor-pointer">REINICIAR</button>
-<button id="share-button" class="bg-secondary text-white py-3 px-4 rounded-button text-sm flex-1 cursor-pointer">COMPARTILHAR</button>
+<div class="flex justify-center">
+<button id="play-again-button" class="game-btn text-white py-3 px-12 rounded-button text-sm cursor-pointer">REINICIAR</button>
 </div>
 </div>
 </div>
@@ -195,7 +194,6 @@ const cardImages = [
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', resetGame);
 playAgainButton.addEventListener('click', resetGame);
-shareButton.addEventListener('click', shareResults);
 // Função para iniciar o jogo
 function startGame() {
 startScreen.classList.add('hidden');
@@ -335,10 +333,6 @@ victoryModal.classList.add('hidden');
 clearInterval(timerInterval);
 // Criar novas cartas
 createCards();
-}
-// Função para compartilhar resultados
-function shareResults() {
-alert('Compartilhamento para Instagram Stories não disponível nesta versão de demonstração.');
 }
 // Inicializar o jogo
 createCards();
