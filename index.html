@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo da Memória - Maio Tribos</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css">
+<style>
+:where([class^="ri-"])::before { content: "\f3c2"; }
+body {
+font-family: 'Poppins', sans-serif;
+background-color: #FFF8E1;
+}
+.card {
+perspective: 1000px;
+transform-style: preserve-3d;
+transition: transform 0.5s;
+}
+.card-inner {
+transition: transform 0.5s;
+transform-style: preserve-3d;
+}
+.card-front, .card-back {
+backface-visibility: hidden;
+position: absolute;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+}
+.card-back {
+transform: rotateY(180deg);
+}
+.flipped .card-inner {
+transform: rotateY(180deg);
+}
+.matched .card-inner {
+transform: rotateY(180deg);
+animation: matchedPairEffect 0.5s ease-in-out;
+}
+@keyframes matchedPairEffect {
+0% {
+transform: rotateY(180deg) scale(1);
+}
+50% {
+transform: rotateY(180deg) scale(1.05);
+}
+100% {
+transform: rotateY(180deg) scale(1);
+}
+}
+.logo {
+font-family: 'Pacifico', serif;
+color: #E53935;
+text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+.game-btn {
+background-color: #E53935;
+transition: all 0.3s ease;
+}
+.game-btn:hover {
+background-color: #D32F2F;
+transform: translateY(-2px);
+}
+.card-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+max-width: 300px;
+margin: 0 auto;
+}
+.timer, .attempts {
+font-weight: 600;
+color: #333;
+}
+.victory-modal {
+background-color: rgba(0,0,0,0.7);
+z-index: 50;
+}
+.victory-content {
+background-color: #FFF8E1;
+border-radius: 12px;
+box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+</style>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#E53935',secondary:'#FFC107'},borderRadius:{'none':'0px','sm':'4px',DEFAULT:'8px','md':'12px','lg':'16px','xl':'20px','2xl':'24px','3xl':'32px','full':'9999px','button':'8px'}}}}</script>
+</head>
+<body class="min-h-screen flex flex-col">
+<div class="container mx-auto px-4 py-6 flex-1 flex flex-col">
+<!-- Logo e Cabeçalho -->
+<header class="text-center mb-4">
+<img src="https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/c319bd29b72e207412c19797a0a37733.png" alt="Maio Tribos" class="h-16 mx-auto">
+</header>
+<!-- Tela Inicial (visível por padrão) -->
+<div id="start-screen" class="flex-1 flex flex-col items-center justify-center">
+<p class="text-center text-lg mb-6 max-w-xs text-gray-700 leading-snug">Mostre que maionese também faz bem pra memória e revele os pares no menor tempo possível!</p>
+<img src="https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/f0c4598ed7d6c54307cd2ef8b048ec52.png" alt="Game Characters" class="w-64 mb-8">
+<button id="start-button" class="game-btn text-white py-2 px-8 rounded-button font-semibold text-lg mb-8 cursor-pointer">JOGAR</button>
+<div class="card-grid">
+<!-- Cards na tela inicial (todos virados para baixo) -->
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+<div class="aspect-[3/4] bg-primary rounded-md shadow-md"></div>
+</div>
+</div>
+<!-- Tela de Jogo (inicialmente oculta) -->
+<div id="game-screen" class="flex-1 flex flex-col items-center justify-start hidden">
+<div class="flex justify-between items-center w-full max-w-xs mb-4">
+<div class="attempts text-sm">TENTATIVAS: <span id="attempts-count">0</span></div>
+<div class="timer text-sm"><span id="timer">00:00</span></div>
+<button id="restart-button" class="game-btn text-white py-1 px-4 rounded-button text-sm cursor-pointer">REINICIAR</button>
+</div>
+<div id="game-grid" class="card-grid mb-8">
+<!-- Cards serão gerados dinamicamente pelo JavaScript -->
+</div>
+</div>
+<!-- Modal de Vitória (inicialmente oculto) -->
+<div id="victory-modal" class="victory-modal fixed inset-0 flex items-center justify-center hidden">
+<div class="victory-content p-6 w-[320px]">
+<h2 class="text-center text-2xl font-bold text-primary mb-2">PARABÉNS!</h2>
+<p class="text-center mb-8">Você revelou todas as MaiôTribos</p>
+<div class="flex flex-col items-center gap-6 mb-8">
+<div class="text-center">
+<p class="text-sm mb-1">tempo</p>
+<p class="font-['Dancing_Script'] text-5xl" id="final-time">00:00</p>
+</div>
+<div class="text-center">
+<p class="text-sm mb-1">tentativas</p>
+<p class="font-['Dancing_Script'] text-5xl" id="final-attempts">0</p>
+</div>
+</div>
+<div class="flex justify-between gap-4">
+<button id="play-again-button" class="game-btn text-white py-3 px-4 rounded-button text-sm flex-1 cursor-pointer">REINICIAR</button>
+<button id="share-button" class="bg-secondary text-white py-3 px-4 rounded-button text-sm flex-1 cursor-pointer">COMPARTILHAR</button>
+</div>
+</div>
+</div>
+</div>
+<footer class="bg-primary w-full py-4 text-center text-white text-sm mt-8">
+<a href="http://www.29demaio.com.br" class="block hover:underline">www.29demaio.com.br</a>
+<p class="mt-1">© 2025 - Todos os direitos reservados</p>
+</footer>
+<script id="game-initialization">
+document.addEventListener('DOMContentLoaded', function() {
+// Elementos da interface
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+const startButton = document.getElementById('start-button');
+const restartButton = document.getElementById('restart-button');
+const gameGrid = document.getElementById('game-grid');
+const attemptsCount = document.getElementById('attempts-count');
+const timerElement = document.getElementById('timer');
+const victoryModal = document.getElementById('victory-modal');
+const finalAttempts = document.getElementById('final-attempts');
+const finalTime = document.getElementById('final-time');
+const playAgainButton = document.getElementById('play-again-button');
+const shareButton = document.getElementById('share-button');
+// Variáveis do jogo
+let cards = [];
+let flippedCards = [];
+let matchedPairs = 0;
+let attempts = 0;
+let timer = 0;
+let timerInterval;
+let gameStarted = false;
+// Imagens para os pares de cartas
+const cardImages = [
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/7016860ff52fad32ae64e1dd0036cfc8.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/db189952164add7d0e680163a7ca7f0e.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/46eb42d92db81b800d4528945c380d79.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/d8afcbfb2b644f3bc9a9b663c8ee3e14.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/7a9dd74ebc689ea3190c793b0d0385e2.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/c7267941fa521a215c1b5fdd69109722.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/0d8872dc0386de1fd19f1744199b29f6.jpeg",
+"https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/581616788ba6e260f7436d1d3dfed9f3.jpeg"
+];
+// Iniciar o jogo
+startButton.addEventListener('click', startGame);
+restartButton.addEventListener('click', resetGame);
+playAgainButton.addEventListener('click', resetGame);
+shareButton.addEventListener('click', shareResults);
+// Função para iniciar o jogo
+function startGame() {
+startScreen.classList.add('hidden');
+gameScreen.classList.remove('hidden');
+resetGame();
+}
+// Função para criar e embaralhar as cartas
+function createCards() {
+gameGrid.innerHTML = '';
+cards = [];
+// Criar pares de cartas
+const cardPairs = [];
+for (let i = 0; i < 8; i++) {
+cardPairs.push(i, i);
+}
+// Embaralhar as cartas usando o algoritmo Fisher-Yates
+for (let i = cardPairs.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[cardPairs[i], cardPairs[j]] = [cardPairs[j], cardPairs[i]];
+}
+// Adicionar um segundo embaralhamento para garantir maior aleatoriedade
+for (let i = cardPairs.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[cardPairs[i], cardPairs[j]] = [cardPairs[j], cardPairs[i]];
+}
+// Criar elementos das cartas
+cardPairs.forEach((cardType, index) => {
+const card = document.createElement('div');
+card.className = 'card aspect-[3/4] relative cursor-pointer';
+card.dataset.cardType = cardType;
+card.dataset.index = index;
+const cardInner = document.createElement('div');
+cardInner.className = 'card-inner w-full h-full relative';
+const cardFront = document.createElement('div');
+cardFront.className = 'card-front bg-primary rounded-md flex items-center justify-center text-white font-bold relative overflow-hidden';
+cardFront.innerHTML = `<img src="https://static.readdy.ai/image/e8f4592c056c52e35d8eebf07008d1d2/9489f20b7e2890828b615bd54961d62e.jpeg" alt="29 de Maio" class="w-full h-full object-cover">`;
+const cardBack = document.createElement('div');
+cardBack.className = 'card-back rounded-md overflow-hidden';
+cardBack.innerHTML = `<img src="${cardImages[cardType]}" alt="Card" class="w-full h-full object-cover">`;
+cardInner.appendChild(cardFront);
+cardInner.appendChild(cardBack);
+card.appendChild(cardInner);
+card.addEventListener('click', () => flipCard(card));
+gameGrid.appendChild(card);
+cards.push(card);
+});
+}
+// Função para virar uma carta
+function flipCard(card) {
+// Ignorar se a carta já estiver virada ou se já houver duas cartas viradas
+if (card.classList.contains('flipped') || flippedCards.length >= 2 || card.classList.contains('matched')) {
+return;
+}
+// Iniciar o timer na primeira jogada
+if (!gameStarted) {
+startTimer();
+gameStarted = true;
+}
+// Virar a carta
+card.classList.add('flipped');
+flippedCards.push(card);
+// Verificar se há duas cartas viradas
+if (flippedCards.length === 2) {
+attempts++;
+attemptsCount.textContent = attempts;
+// Verificar se as cartas formam um par
+if (flippedCards[0].dataset.cardType === flippedCards[1].dataset.cardType) {
+// Par encontrado
+matchedPairs++;
+flippedCards.forEach(card => {
+card.classList.add('matched');
+card.style.pointerEvents = 'none';
+});
+flippedCards = [];
+// Verificar se o jogo terminou
+if (matchedPairs === 8) {
+setTimeout(() => {
+endGame();
+}, 300);
+}
+} else {
+// Não formam par, virar de volta após um tempo
+setTimeout(() => {
+flippedCards.forEach(card => {
+card.classList.remove('flipped');
+});
+flippedCards = [];
+}, 1000);
+}
+}
+}
+// Função para iniciar o timer
+function startTimer() {
+clearInterval(timerInterval);
+timer = 0;
+timerInterval = setInterval(() => {
+timer++;
+updateTimerDisplay();
+}, 1000);
+}
+// Função para atualizar a exibição do timer
+function updateTimerDisplay() {
+const minutes = Math.floor(timer / 60).toString().padStart(2, '0');
+const seconds = (timer % 60).toString().padStart(2, '0');
+timerElement.textContent = `${minutes}:${seconds}`;
+}
+// Função para finalizar o jogo
+function endGame() {
+clearInterval(timerInterval);
+// Atualizar informações do modal de vitória
+finalAttempts.textContent = attempts;
+finalTime.textContent = timerElement.textContent;
+// Mostrar modal após um pequeno delay
+victoryModal.classList.remove('hidden');
+}
+// For testing purposes - show victory screen immediately
+document.addEventListener('DOMContentLoaded', function() {
+setTimeout(() => {
+document.getElementById('start-button').click();
+document.getElementById('attempts-count').textContent = '12';
+document.getElementById('timer').textContent = '01:30';
+endGame();
+}, 1000);
+});
+// Função para reiniciar o jogo
+function resetGame() {
+// Resetar variáveis
+flippedCards = [];
+matchedPairs = 0;
+attempts = 0;
+gameStarted = false;
+// Resetar interface
+attemptsCount.textContent = '0';
+timerElement.textContent = '00:00';
+victoryModal.classList.add('hidden');
+// Parar o timer
+clearInterval(timerInterval);
+// Criar novas cartas
+createCards();
+}
+// Função para compartilhar resultados
+function shareResults() {
+alert('Compartilhamento para Instagram Stories não disponível nesta versão de demonstração.');
+}
+// Inicializar o jogo
+createCards();
+});
+</script>
+</body>
+</html>
